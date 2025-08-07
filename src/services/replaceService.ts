@@ -1,12 +1,14 @@
 
 import * as vscode from 'vscode';
 import ApiTogetherService from './apiTogetherService';
+import OpenAiService from './openaiService';
 
 export type Mapping = {[key: string]:string|object};
 
 class ReplaceService {
 
     public apiTogetherService:ApiTogetherService = new ApiTogetherService();
+    public openaiService:OpenAiService = new OpenAiService();
     constructor() { }
 
 
@@ -44,9 +46,17 @@ class ReplaceService {
 
 
 
-extractFunctionCalls(code: string): string[] {
+extractFunctionCalls(lines:string[]): Match[] {
   const regex = /(?:\w+\.)*\w+(?=\()/g;
-  return code.match(regex) || [];
+
+  const result:Match[] = [];
+  lines.forEach((text, line) => {
+    const matches = [...text.matchAll(regex)];
+    for (const match of matches)
+        result.push({ call:match[0], line });
+  });
+
+  return result;
 }
 
 resolveMapping(pathParts: string[], mappingObj: any): string | null {
@@ -70,17 +80,20 @@ resolveMapping(pathParts: string[], mappingObj: any): string | null {
   return null;
 }
 
-findDeprecatedApis(code: string, mapping:Mapping) {
-    const matches = this.extractFunctionCalls(code);
-    const results: { original: string; replacement: string }[] = [];
-    for (const match of matches) {
-        const parts = match.split(".");
-        let replacement = this.resolveMapping(parts, mapping);
+findDeprecatedApis(matches:Match[], mapping:Mapping):Replace[] {
+    const set:Set<string> = new Set();
+    matches.forEach(match => set.add(match.call));
+    const uniqueCalls:string[] = Array.from(set);
 
-        if (replacement) {    
-            const deleteCount = replacement.split('$').length - 1;
-            replacement = (parts.splice(0, parts.length - 1 - deleteCount)).join('.') + '.' + replacement.replace('$', '');            
-            results.push({ original: match, replacement });
+    const results:Replace[] = [];
+    for (const call of uniqueCalls) {
+        const parts = call.split(".");
+        let updated = this.resolveMapping(parts, mapping);
+
+        if (updated) {    
+            const deleteCount = updated.split('$').length - 1;
+            updated = (parts.splice(0, parts.length - 1 - deleteCount)).join('.') + '.' + updated.replace('$', '');            
+            results.push({ outdated: call, updated });
         }
     }
     return results;
@@ -109,9 +122,32 @@ findDeprecatedApis(code: string, mapping:Mapping) {
 			updated: string;
 		};
 
-        const replaces = this.findDeprecatedApis(text, mappings);
+        const lines:string[] = text.split('\n');
+        let matches:Match[] = this.extractFunctionCalls(lines);
+        const replaces:Replace[] = this.findDeprecatedApis(matches, mappings);
+        matches = matches.filter(match => replaces.some(({outdated,}) =>  match.call === outdated));
+        
+        matches.forEach(async (match) => {
+            const outdated = match.call;
+            const updated = replaces.find(replace => replace.outdated === match.call)?.updated;
+            const code = lines.splice(0, match.line+1).join('\n');
+            
+            const response:string = await this.openaiService.postMessage(
+                `# "${outdated}" is deprecated, use "${updated}" instead and, revise the return value and arguments.\n`+
+                `${code}`
+            );
+
+            console.log({response})
+        });
+
+
+        return;
+
+        /*console.log('matches', matches)
+        console.log('replaces', replaces)
+
         const obsoleteUsages:[outdated:string,updated:string][] =
-                replaces.map(({original, replacement}) => [original, replacement]);
+                replaces.map(({outdated, updated}) => [outdated, updated]);*/
         
 
         /*await this.apiTogetherService.postMessage2(
@@ -131,7 +167,7 @@ findDeprecatedApis(code: string, mapping:Mapping) {
 
         
     	const replacements: Replacement[] = [];
-		obsoleteUsages.forEach(async ([obsolete, updated]) => {
+		/*obsoleteUsages.forEach(async ([obsolete, updated]) => {
             const regex = new RegExp(`\\b${obsolete}\\b`, 'g');
             let match;
 
@@ -151,7 +187,7 @@ findDeprecatedApis(code: string, mapping:Mapping) {
                     });
                 }
             }
-        });
+        });*/
 
 		// ALTERA DE BAIXO PARA CIMA, OU TERIA PROBLEMA COM OS INDEXES
 		replacements.reverse();
@@ -173,5 +209,14 @@ findDeprecatedApis(code: string, mapping:Mapping) {
 
 const replaceService:ReplaceService = new ReplaceService();
 
+type Match = {
+    call: string;
+    line: number;
+}
+
+type Replace = {
+    outdated: string;
+    updated: string;
+}
 
 export default replaceService;

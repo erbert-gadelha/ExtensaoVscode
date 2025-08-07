@@ -9,7 +9,7 @@ const MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.2";
 export default class ApiTogetherService {
 
     async postMessage (prompt:string):Promise<string> {
-        console.warn('sending message');
+        console.warn(`sending message:\n"${prompt}"`);
         const client = new Together({ apiKey: TOGETHER_API_KEY });
         const chatCompletion = await client.chat.completions.create({
             messages: [{ role: 'user', content: prompt }],
