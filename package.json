@@ -18,23 +18,46 @@
         "title": "Hello World"
       },
       {
-        "command": "replacing-deprecated-apis.replaceSelection",
-        "title": "Corrigir Seleção"
+        "command": "replacing-deprecated-apis.insertPromptSelection",
+        "title": "Corrigir Seleção INSERT PROMPT"
       },
       {
-        "command": "replacing-deprecated-apis.replaceFile",
-        "title": "Corrigir Arquivo"
+        "command": "replacing-deprecated-apis.replaceApiSelection",
+        "title": "Corrigir Seleção REPLACE API"
+      },
+
+
+      {
+        "command": "replacing-deprecated-apis.insertPromptFile",
+        "title": "Corrigir Arquivo INSERT PROMPT"
+      },
+      {
+        "command": "replacing-deprecated-apis.replaceApiFile",
+        "title": "Corrigir Arquivo REPLACE API"
       }
     ],
     "menus": {
       "editor/context": [
         {
-          "command": "replacing-deprecated-apis.replaceSelection",
+          "command": "replacing-deprecated-apis.insertPromptSelection",
           "when": "editorHasSelection",
           "group": "navigation"
         },
         {
-          "command": "replacing-deprecated-apis.replaceFile",
+          "command": "replacing-deprecated-apis.replaceApiSelection",
+          "when": "editorHasSelection",
+          "group": "navigation"
+        },
+
+
+
+        {
+          "command": "replacing-deprecated-apis.insertPromptFile",
+          "when": "activeEditor",
+          "group": "navigation"
+        },
+        {
+          "command": "replacing-deprecated-apis.replaceApiFile",
           "when": "activeEditor",
           "group": "navigation"
         }

@@ -32,21 +32,43 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.showInformationMessage('Ler seleçao e mandar para uma llm');
 	}));
 
-	// CORRIGIR SELECAO
+
+	// CORRIGIR SELECAO INSERT PROMPT
 	context.subscriptions.push(
-		vscode.commands.registerCommand('replacing-deprecated-apis.replaceSelection', async () => {
+		vscode.commands.registerCommand('replacing-deprecated-apis.insertPromptSelection', async () => {
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) return;
-			replaceService.replaceSelection(mapping, editor);
+			replaceService.replaceSelection('INSERT_PROMPT', mapping, editor);
 		})
 	);
 
-	// CORRIGIR ARQUIVO
+	// CORRIGIR SELECAO REPLACE API
 	context.subscriptions.push(
-		vscode.commands.registerCommand('replacing-deprecated-apis.replaceFile', async () => {
+		vscode.commands.registerCommand('replacing-deprecated-apis.replaceApiSelection', async () => {
 			const editor = vscode.window.activeTextEditor;
 			if (!editor) return;
-			replaceService.replaceFile(mapping, editor);
+			replaceService.replaceSelection('REPLACE_API', mapping, editor);
+		})
+	);
+
+
+
+
+	// CORRIGIR ARQUIVO  INSERT PROMPT
+	context.subscriptions.push(
+		vscode.commands.registerCommand('replacing-deprecated-apis.insertPromptFile', async () => {
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) return;
+			replaceService.replaceFile('INSERT_PROMPT', mapping, editor);
+		})
+	);
+
+	// CORRIGIR ARQUIVO REPLACE API
+	context.subscriptions.push(
+		vscode.commands.registerCommand('replacing-deprecated-apis.replaceApiFile', async () => {
+			const editor = vscode.window.activeTextEditor;
+			if (!editor) return;
+			replaceService.replaceFile('REPLACE_API', mapping, editor);
 		})
 	);	
 }

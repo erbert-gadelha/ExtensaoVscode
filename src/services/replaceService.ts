@@ -2,6 +2,7 @@
 import * as vscode from 'vscode';
 import ApiTogetherService from './apiTogetherService';
 import OpenAiService from './openaiService';
+import { match } from 'assert';
 
 export type Mapping = {[key: string]:string|object};
 
@@ -13,13 +14,13 @@ class ReplaceService {
 
 
 
-    async replaceFile(mappings:Mapping, editor:vscode.TextEditor  ) {      
-        await this.$replace('file', mappings, editor)
+    async replaceFile(aproach:Aproach, mappings:Mapping, editor:vscode.TextEditor  ) {      
+        await this.$replace('file', aproach, mappings, editor)
     }
 
 
-	async replaceSelection(mappings:Mapping, editor:vscode.TextEditor  ) {      
-        await this.$replace('selection', mappings, editor)
+	async replaceSelection(aproach:Aproach, mappings:Mapping, editor:vscode.TextEditor  ) {      
+        await this.$replace('selection', aproach,mappings, editor)
     }
 
 
@@ -102,6 +103,11 @@ findDeprecatedApis(matches:Match[], mapping:Mapping):Replace[] {
 
 
 
+cleanCodeBlock(text: string): string {
+  const codeBlockRegex = /^```(?:\w+)?\n([\s\S]*?)\n```$/;
+  const match = text.match(codeBlockRegex);
+  return match ? match[1] : text;
+}
 
 
 
@@ -111,7 +117,7 @@ findDeprecatedApis(matches:Match[], mapping:Mapping):Replace[] {
 
 
 
-    async $replace(target:'file'|'selection', mappings:Mapping, editor:vscode.TextEditor) {
+    async $replace(target:'file'|'selection', aproach:Aproach, mappings:Mapping, editor:vscode.TextEditor) {
         const document:vscode.TextDocument = editor.document;
         const text = target==='file'? document.getText():  document.getText(editor.selection);
         const selection = editor.selection;
@@ -125,80 +131,48 @@ findDeprecatedApis(matches:Match[], mapping:Mapping):Replace[] {
         const lines:string[] = text.split('\n');
         let matches:Match[] = this.extractFunctionCalls(lines);
         const replaces:Replace[] = this.findDeprecatedApis(matches, mappings);
-        matches = matches.filter(match => replaces.some(({outdated,}) =>  match.call === outdated));
-        
-        matches.forEach(async (match) => {
-            const outdated = match.call;
-            const updated = replaces.find(replace => replace.outdated === match.call)?.updated;
-            const code = lines.splice(0, match.line+1).join('\n');
-            
-            const response:string = await this.openaiService.postMessage(
-                `# "${outdated}" is deprecated, use "${updated}" instead and, revise the return value and arguments.\n`+
-                `${code}`
-            );
+        const outdatedMatches = matches.filter(match => replaces.some(({outdated,}) =>  match.call === outdated));
 
-            console.log({response})
-        });
+        switch(aproach) {
+            case 'INSERT_PROMPT':
+                outdatedMatches.reverse().forEach((match:Match) => {
+                    const outdated = match.call;
+                    const updated = replaces.find(replace => replace.outdated === match.call)?.updated;
+                    const prompt = `# "${outdated}" is deprecated, use "${updated}" instead and, revise the return value and arguments.`;
+                    lines.splice(match.line, 0, prompt);
+                });
+                break;
+            case 'REPLACE_API':
+                outdatedMatches.reverse().forEach((match:Match) => {
+                    const outdated = match.call;
+                    const updated = replaces.find(replace => replace.outdated === match.call)?.updated;
+                    
+                    const line = lines[match.line];
+                    const indexOf = line.indexOf(outdated);
 
+                    lines[match.line] = indexOf !== -1
+                        ? line.slice(0, indexOf) + updated
+                        : line;
+                });
+                break;
+        }
 
-        return;
+        let response!:string;
+        switch(aproach) {
+            case 'INSERT_PROMPT':
+                response = await this.openaiService.postMessage(lines.join('\n'));
+                break;
+            case 'REPLACE_API':
+                response = await this.openaiService.postMessage('# complete the remaining parameters from the code bellow.\n' + lines.join('\n'));
+                break;
+        }
 
-        /*console.log('matches', matches)
-        console.log('replaces', replaces)
-
-        const obsoleteUsages:[outdated:string,updated:string][] =
-                replaces.map(({outdated, updated}) => [outdated, updated]);*/
-        
-
-        /*await this.apiTogetherService.postMessage2(
-            '# COMPLETE THE CODE BELLOW\n'+
-            'import torch\n' +
-            'A = torch.randn(6, 3)\n' +
-            'B = torch.randn(6, 1)\n' +
-            'result = torch.linalg.lstsq');*/
-
-        /*console.log(await this.apiTogetherService.postMessage(
-            '# {torch.lstsq} is deprecated, use {torch.linalg.lstsq} instead and revise the return value and arguments.n'+
-            'import torch\n' +
-            'A = torch.randn(6, 3)\n' +
-            'B = torch.randn(6, 1)\n' +
-            'result = torch.lstsq(A, B)'
-        ));*/
-
-        
-    	const replacements: Replacement[] = [];
-		/*obsoleteUsages.forEach(async ([obsolete, updated]) => {
-            const regex = new RegExp(`\\b${obsolete}\\b`, 'g');
-            let match;
-
-            while ((match = regex.exec(text)) !== null) {
-                if(target === 'file') {
-                    const start = document.positionAt(match.index);
-                    const end = document.positionAt(match.index + obsolete.length);
-                    replacements.push({ range: new vscode.Range(start, end), obsolete, updated });
-                } else {
-                    const offset = document.offsetAt(selection.start) + match.index;
-                    const start = document.positionAt(offset);
-                    const end = document.positionAt(offset + obsolete.length);
-                    replacements.push({
-                        range: new vscode.Range(start, end),
-                        obsolete,
-                        updated
-                    });
-                }
-            }
-        });*/
-
-		// ALTERA DE BAIXO PARA CIMA, OU TERIA PROBLEMA COM OS INDEXES
-		replacements.reverse();
-		for (const { range, obsolete, updated } of replacements) {
-            await editor.edit(editBuilder => {
-                editBuilder.replace(range, updated);
-            });
-		}
+        const message = this.cleanCodeBlock(response);
+        const fullRange = new vscode.Range( document.positionAt(0), document.positionAt(document.getText().length));
+        await editor.edit(editBuilder => { editBuilder.replace(fullRange, message); });
 				
-		if(replacements.length)
-			vscode.window.showInformationMessage(`${replacements.length} chamadas à APIs atualizadas.`);
+		if(outdatedMatches.length)
+			vscode.window.showInformationMessage(`${outdatedMatches.length} chamadas à APIs atualizadas.`);
 		else 
 			vscode.window.showInformationMessage(`Não há usos de API obsoletas.`);
     }
@@ -218,5 +192,7 @@ type Replace = {
     outdated: string;
     updated: string;
 }
+
+type Aproach = ('INSERT_PROMPT' | 'REPLACE_API');
 
 export default replaceService;
