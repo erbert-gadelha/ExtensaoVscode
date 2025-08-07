@@ -3,6 +3,7 @@ const mapping = {
   "chain_matmul": "linalg.multi_dot",
   "cholesky": "linalg.cholesky",
   "eig": "linalg.eig",
+  "gels": "linalg.lstsq",
   "lstsq": "linalg.lstsq",
   "lu": "linalg.lu_factor",
   "lu_solve": "linalg.lu_solve",

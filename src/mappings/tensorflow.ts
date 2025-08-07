@@ -1,51 +1,95 @@
+import generateDict from "./preprocessor";
+
 const mapping = {
   "Print": "print",
   "all_variables": "global_variables",
-  "arg_max": "math.argmax",
-  "arg_min": "math.argmin",
-  "compat.v1.Print": "print",
-  "compat.v1.all_variables": "global_variables",
-  "compat.v1.arg_max": "math.argmax",
-  "compat.v1.arg_min": "math.argmin",
-  "compat.v1.div": "divide",
-  "compat.v1.initialize_all_variables": "global_variables_initializer",
-  "compat.v1.initializers.uniform_unit_scaling": "initializers.variance_scaling",
-  "compat.v1.metrics.auc": "keras.metrics.AUC",
-  "compat.v1.mixed_precision.DynamicLossScale": "keras.mixed_precision.LossScaleOptimizer",
-  "compat.v1.mixed_precision.FixedLossScale": "keras.mixed_precision.LossScaleOptimizer",
-  "compat.v1.mixed_precision.experimental.DynamicLossScale": "keras.mixed_precision.LossScaleOptimizer",
-  "compat.v1.mixed_precision.experimental.FixedLossScale": "keras.mixed_precision.LossScaleOptimizer",
-  "compat.v1.multinomial": "random.categorical",
-  "compat.v1.random.multinomial": "random.categorical",
-  "compat.v1.saved_model.load": "saved_model.load",
-  "compat.v1.saved_model.loader.load": "saved_model.load",
-  "compat.v1.sparse_to_dense": "sparse.to_dense",
-  "compat.v1.substr": "strings.substr",
-  "compat.v1.to_bfloat16": "cast",
-  "compat.v1.to_complex128": "cast",
-  "compat.v1.to_complex64": "cast",
-  "compat.v1.to_double": "cast",
-  "compat.v1.to_float": "cast",
-  "compat.v1.to_int32": "cast",
-  "compat.v1.to_int64": "cast",
-  "compat.v1.train.experimental.DynamicLossScale": "keras.mixed_precision.LossScaleOptimizer",
-  "compat.v1.train.experimental.FixedLossScale": "keras.mixed_precision.LossScaleOptimizer",
-  "compat.v1.uniform_unit_scaling_initializer": "initializers.variance_scaling",
-  "config.experimental_run_functions_eagerly": "config.run_functions_eagerly",
-  "distribute.experimental.MultiWorkerMirroredStrategy": "distribute.MultiWorkerMirroredStrategy",
+  "arg_max": "argmax",
+  "arg_min": "argmin",
+  "compat": {
+    "v1": {
+      "Print": "print",
+      "all_variables": "global_variables",
+      "arg_max": "argmax",
+      "arg_min": "argmin",
+      "div": "divide",
+      "initialize_all_variables": "global_variables_initializer",
+      "initializers": {
+        "uniform_unit_scaling": "variance_scaling"
+      },
+      "metrics": {
+        "auc": "AUC"
+      },
+      "mixed_precision": {
+        "DynamicLossScale": "LossScaleOptimizer",
+        "FixedLossScale": "LossScaleOptimizer",
+        "experimental": {
+          "DynamicLossScale": "LossScaleOptimizer",
+          "FixedLossScale": "LossScaleOptimizer"
+        }
+      },
+      "multinomial": "categorical",
+      "random": {
+        "multinomial": "categorical"
+      },
+      "saved_model": {
+        "load": "load",
+        "loader": {
+          "load": "load"
+        }
+      },
+      "sparse_to_dense": "to_dense",
+      "substr": "substr",
+      "to_bfloat16": "cast",
+      "to_complex128": "cast",
+      "to_complex64": "cast",
+      "to_double": "cast",
+      "to_float": "cast",
+      "to_int32": "cast",
+      "to_int64": "cast",
+      "train": {
+        "experimental": {
+          "DynamicLossScale": "LossScaleOptimizer",
+          "FixedLossScale": "LossScaleOptimizer"
+        }
+      },
+      "uniform_unit_scaling_initializer": "variance_scaling"
+    }
+  },
+  "config": {
+    "experimental_run_functions_eagerly": "run_functions_eagerly"
+  },
+  "distribute": {
+    "experimental": {
+      "MultiWorkerMirroredStrategy": "MultiWorkerMirroredStrategy"
+    }
+  },
   "div": "divide",
   "initialize_all_variables": "global_variables_initializer",
-  "initializers.uniform_unit_scaling": "initializers.variance_scaling",
-  "metrics.auc": "keras.metrics.AUC",
-  "mixed_precision.DynamicLossScale": "keras.mixed_precision.LossScaleOptimizer",
-  "mixed_precision.FixedLossScale": "keras.mixed_precision.LossScaleOptimizer",
-  "mixed_precision.experimental.DynamicLossScale": "keras.mixed_precision.LossScaleOptimizer",
-  "mixed_precision.experimental.FixedLossScale": "keras.mixed_precision.LossScaleOptimizer",
-  "multinomial": "random.categorical",
-  "random.multinomial": "random.categorical",
-  "saved_model.loader.load": "saved_model.load",
-  "sparse_to_dense": "sparse.to_dense",
-  "substr": "strings.substr",
+  "initializers": {
+    "uniform_unit_scaling": "variance_scaling"
+  },
+  "metrics": {
+    "auc": "AUC"
+  },
+  "mixed_precision": {
+    "DynamicLossScale": "LossScaleOptimizer",
+    "FixedLossScale": "LossScaleOptimizer",
+    "experimental": {
+      "DynamicLossScale": "LossScaleOptimizer",
+      "FixedLossScale": "LossScaleOptimizer"
+    }
+  },
+  "multinomial": "categorical",
+  "random": {
+    "multinomial": "categorical"
+  },
+  "saved_model": {
+    "loader": {
+      "load": "load"
+    }
+  },
+  "sparse_to_dense": "to_dense",
+  "substr": "substr",
   "to_bfloat16": "cast",
   "to_complex128": "cast",
   "to_complex64": "cast",
@@ -53,9 +97,13 @@ const mapping = {
   "to_float": "cast",
   "to_int32": "cast",
   "to_int64": "cast",
-  "train.experimental.DynamicLossScale": "keras.mixed_precision.LossScaleOptimizer",
-  "train.experimental.FixedLossScale": "keras.mixed_precision.LossScaleOptimizer",
-  "uniform_unit_scaling_initializer": "initializers.variance_scaling"
+  "train": {
+    "experimental": {
+      "DynamicLossScale": "LossScaleOptimizer",
+      "FixedLossScale": "LossScaleOptimizer"
+    }
+  },
+  "uniform_unit_scaling_initializer": "variance_scaling"
 }
 
 export default mapping;

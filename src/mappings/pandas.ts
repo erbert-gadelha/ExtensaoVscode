@@ -6,7 +6,8 @@ const mapping:any = {
         "last":     "loc",
         "pad":      "ffill",
         "select":   "loc",
-        "swapaxes": "transpose"
+        "swapaxes": "transpose",
+        "ix": "iloc",
     },
     "Series": {
         "iteritems": "items",
